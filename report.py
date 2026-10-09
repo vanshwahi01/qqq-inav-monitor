@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from datetime import date
 from pathlib import Path
 
 import matplotlib
@@ -106,7 +107,7 @@ def update_readme(data: dict) -> None:
         for h in data["holdings"])
 
     block = f"""{START}
-**As of {L["valuation_date"]}** · holdings from {L["holdings_date"]} · updated {data["last_run"]}
+**As of {date.fromisoformat(L["valuation_date"]):%B %-d, %Y}**
 
 | iNAV | {data["ticker"]} close | Premium / discount | Official NAV |
 |---|---|---|---|
