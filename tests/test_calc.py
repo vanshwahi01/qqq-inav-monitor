@@ -51,3 +51,25 @@ def test_real_feed_weights_reconcile(real_holdings):
 def test_yahoo_ticker_mapping():
     assert to_yahoo("BRK.B") == "BRK-B"
     assert to_yahoo("NVDA") == "NVDA"
+
+
+def test_tickers_dropped_by_yahoo_are_retried(monkeypatch):
+    from datetime import date
+
+    from inav import prices
+
+    days = [date(2026, 10, 1), date(2026, 10, 2)]
+    calls = []
+
+    def fake_download(tickers, start, end):
+        calls.append(list(tickers))
+        # first bulk call silently drops CSCO, the retry returns it
+        cols = {t: [1.0, 2.0] if (t != "CSCO" or len(calls) > 1) else [None, None] for t in tickers}
+        return pd.DataFrame(cols, index=days)
+
+    monkeypatch.setattr(prices, "_download", fake_download)
+    monkeypatch.setattr(prices.time, "sleep", lambda s: None)
+    closes = prices.fetch_closes(["NVDA", "CSCO", "BRK.B"], days[0], days[1])
+    assert calls == [["NVDA", "CSCO", "BRK-B"], ["CSCO"]]
+    assert list(closes.columns) == ["NVDA", "CSCO", "BRK.B"]
+    assert closes.notna().all().all()

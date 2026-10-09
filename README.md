@@ -5,20 +5,20 @@ Rebuilds the **indicative net asset value (iNAV)** of the Invesco QQQ ETF from i
 ## Latest run
 
 <!-- latest:start -->
-_Updated automatically by the daily job. Last run: 2026-10-09 02:26:26 UTC_
+_Updated automatically by the daily job. Last run: 2026-10-09 02:27:15 UTC_
 
 ![QQQ iNAV vs market close](docs/chart.png)
 
 | Valuation date 2026-10-08 | |
 |---|---|
-| Computed iNAV | $749.05 |
+| Computed iNAV | $747.42 |
 | QQQ close | $747.58 |
-| Premium / discount | -19.6 bp |
-| Official NAV (2026-10-07) | $759.50 |
+| Premium / discount | +2.1 bp |
+| Official NAV (2026-10-07) | $757.96 |
 | iNAV vs official NAV | n/a (NAV used to set shares outstanding) |
 | Holdings as of | 2026-10-07 |
-| Shares outstanding | 655,410,620 (source: nav) |
-| Price coverage | 98.1% |
+| Shares outstanding | 669,383,118 (source: nav) |
+| Price coverage | 100.0% |
 
 **Data-quality checks**
 

@@ -6,6 +6,7 @@ struck on the actual closing prices of its holdings.
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date, timedelta
 
 import pandas as pd
@@ -19,11 +20,9 @@ def to_yahoo(ticker: str) -> str:
     return ticker.replace(".", "-").replace("/", "-")
 
 
-def fetch_closes(tickers: list[str], start: date, end: date) -> pd.DataFrame:
-    """Daily raw closes, indexed by date, one column per (original) ticker."""
-    yahoo_map = {to_yahoo(t): t for t in tickers}
+def _download(yahoo_tickers: list[str], start: date, end: date) -> pd.DataFrame:
     data = yf.download(
-        list(yahoo_map),
+        yahoo_tickers,
         start=start.isoformat(),
         end=(end + timedelta(days=1)).isoformat(),  # yfinance's end is exclusive
         auto_adjust=False,
@@ -32,11 +31,32 @@ def fetch_closes(tickers: list[str], start: date, end: date) -> pd.DataFrame:
     )
     closes = data["Close"]
     if isinstance(closes, pd.Series):
-        closes = closes.to_frame(name=list(yahoo_map)[0])
-    closes = closes.rename(columns=yahoo_map)
+        closes = closes.to_frame(name=yahoo_tickers[0])
     closes.index = pd.to_datetime(closes.index).date
-    closes.index.name = "date"
+    return closes
 
+
+def fetch_closes(tickers: list[str], start: date, end: date, retries: int = 2) -> pd.DataFrame:
+    """Daily raw closes, indexed by date, one column per (original) ticker.
+
+    Yahoo sometimes drops a ticker from a bulk request (seen on CI runners),
+    so tickers with no data at all are retried on their own.
+    """
+    yahoo_map = {to_yahoo(t): t for t in tickers}
+    closes = _download(list(yahoo_map), start, end)
+
+    for attempt in range(1, retries + 1):
+        missing = [y for y in yahoo_map if y not in closes or closes[y].isna().all()]
+        if not missing:
+            break
+        log.warning("Retrying %d ticker(s) with no prices (attempt %d/%d): %s",
+                    len(missing), attempt, retries, ", ".join(missing))
+        time.sleep(2 * attempt)
+        retry = _download(missing, start, end)
+        closes = closes.drop(columns=[c for c in missing if c in closes]).join(retry, how="outer")
+
+    closes = closes.rename(columns=yahoo_map)
+    closes.index.name = "date"
     missing = sorted(set(tickers) - set(closes.columns[closes.notna().any()]))
     if missing:
         log.warning("No prices returned for: %s", ", ".join(missing))
