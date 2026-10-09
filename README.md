@@ -1,6 +1,7 @@
 # QQQ iNAV
 
-Rebuilds the value of the Invesco QQQ ETF from its daily holdings and compares it with the price QQQ actually closed at. The gap is the ETF's premium or discount. It runs for free on GitHub Actions every weekday after the US close and updates this page.
+Rebuilds the value of the Invesco QQQ ETF from its daily holdings and compares it with the price QQQ actually closed at. The gap is the ETF's premium or discount. 
+It runs for free on GitHub Actions every weekday after the US close and updates this page.
 
 <!-- latest:start -->
 **As of October 8, 2026**
