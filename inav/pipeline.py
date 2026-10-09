@@ -22,14 +22,40 @@ def load_config(path: str | Path = "config.yaml") -> dict:
         return yaml.safe_load(f)
 
 
-def resolve_shares_outstanding(cfg: dict, implied: float, info: dict) -> tuple[float, str, list[checks.Flag]]:
+def official_nav(info: dict, filled: pd.DataFrame, etf: str, max_gap_pct: float) -> tuple[date | None, float | None, list[checks.Flag]]:
+    """The issuer's NAV from Yahoo, and the trading day it belongs to.
+
+    Yahoo doesn't date its NAV. It is struck after the close and shows up the
+    next morning, so by the evening run it is the previous trading day's NAV.
+    A NAV far from that day's close is treated as bad data and ignored.
+    """
+    nav = info.get("nav")
+    dates = list(filled.index)
+    if not nav or len(dates) < 2:
+        return None, None, []
+    nav_date = dates[-2]
+    gap_pct = (nav / filled.loc[nav_date, etf] - 1) * 100
+    if abs(gap_pct) > max_gap_pct:
+        return None, None, [checks.Flag(
+            "official_nav", "warning",
+            f"Yahoo NAV ${nav:,.2f} is {gap_pct:+.1f}% from the {nav_date} close; ignored",
+        )]
+    return nav_date, float(nav), []
+
+
+def resolve_shares_outstanding(
+    cfg: dict, implied: float, info: dict, from_nav: float | None = None
+) -> tuple[float, str, list[checks.Flag]]:
     """Pick a shares-outstanding figure and record where it came from.
 
-    Priority: manual override > Yahoo (only if it agrees with our implied
-    figure) > implied from the anchor-day close.
+    Priority: manual override > implied from the official NAV on the holdings
+    date > Yahoo (only if it agrees with our implied figure) > implied from
+    the holdings-date close.
     """
     if cfg.get("shares_outstanding"):
         return float(cfg["shares_outstanding"]), "manual", []
+    if from_nav:
+        return from_nav, "nav", []
 
     flags = []
     yahoo = info.get("shares_outstanding")
@@ -63,10 +89,15 @@ def value_and_check(
     anchor_date = on_or_before[-1]
     anchor = filled.loc[anchor_date]
 
-    # Anchor: value the fund on the holdings date to pin down shares outstanding
+    # Anchor: value the fund on the holdings date to pin down shares outstanding.
+    # If the official NAV for that day is known, TNA / NAV gives shares exactly;
+    # otherwise assume the ETF closed at NAV that day.
+    nav_date, nav, flags = official_nav(info, filled, etf, th["nav_max_gap_pct"])
     fund_mv, _ = fund_value(holdings, anchor)
     implied = implied_shares_outstanding(fund_mv, anchor[etf])
-    shares_out, so_source, flags = resolve_shares_outstanding(cfg, implied, info)
+    from_nav = implied_shares_outstanding(fund_mv, nav) if nav_date == anchor_date else None
+    shares_out, so_source, so_flags = resolve_shares_outstanding(cfg, implied, info, from_nav)
+    flags += so_flags
 
     window = dates[-n_days:] if n_days else [d for d in dates if d >= anchor_date]
     rows = []
@@ -88,12 +119,16 @@ def value_and_check(
         })
     results = pd.DataFrame(rows)
 
-    # Yahoo's NAV is "latest", so it's only compared on the most recent date
+    # Record the official NAV on its own date. The iNAV-vs-NAV error is only a
+    # real test when the NAV wasn't used to set shares outstanding.
     latest = window[-1]
-    if method == "daily" and info.get("nav"):
-        nav = float(info["nav"])
-        results.loc[results.index[-1], "official_nav"] = nav
-        results.loc[results.index[-1], "nav_error_bp"] = premium_bp(results["inav"].iloc[-1], nav)
+    nav_err = None
+    if nav_date in window:
+        i = window.index(nav_date)
+        results.loc[i, "official_nav"] = nav
+        if so_source != "nav":
+            nav_err = premium_bp(results.loc[i, "inav"], nav)
+            results.loc[i, "nav_error_bp"] = nav_err
 
     last = results.iloc[-1]
     flags += checks.check_unclassified(holdings)
@@ -103,8 +138,7 @@ def value_and_check(
     flags += checks.check_holdings_age(holdings.as_of, latest, th["holdings_max_age_days"])
     flags += checks.check_tna_reconciles(fund_mv, implied_tna_from_weights(holdings, anchor), th["tna_tolerance_bp"])
     flags += checks.check_threshold("premium", last["premium_bp"], th["premium_warn_bp"], "Premium/discount")
-    nav_err = last["nav_error_bp"]
-    flags += checks.check_threshold("nav_error", None if pd.isna(nav_err) else nav_err, th["nav_error_warn_bp"], "iNAV vs official NAV")
+    flags += checks.check_threshold("nav_error", nav_err, th["nav_error_warn_bp"], "iNAV vs official NAV")
     if so_source == "implied" and latest == anchor_date:
         flags.append(checks.Flag("anchor_day", "info", "Valuation date equals holdings date, so premium is ~0 by construction"))
 

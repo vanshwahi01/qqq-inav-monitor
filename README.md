@@ -1,10 +1,31 @@
 # QQQ iNAV Monitor
 
-Rebuilds the **indicative net asset value (iNAV)** of the Invesco QQQ ETF from its published holdings, compares it with the market price, and runs data-quality checks on every step. A GitHub Actions job runs it each weekday and publishes a dashboard to GitHub Pages.
+Rebuilds the **indicative net asset value (iNAV)** of the Invesco QQQ ETF from its published holdings, compares it with the market price, and runs data-quality checks on every step. A free GitHub Actions job runs it each weekday after the US close and commits the results back here, so this page is the dashboard. There's no server or hosting to set up.
 
-**Live dashboard:** `https://<your-username>.github.io/<repo-name>/`
+## Latest run
 
-<!-- Add a screenshot after the first run: docs/screenshot.png -->
+<!-- latest:start -->
+_Updated automatically by the daily job. Last run: 2026-10-09 02:24:15 UTC_
+
+![QQQ iNAV vs market close](docs/chart.png)
+
+| Valuation date 2026-10-08 | |
+|---|---|
+| Computed iNAV | $747.42 |
+| QQQ close | $747.58 |
+| Premium / discount | +2.1 bp |
+| Official NAV (2026-10-07) | $757.96 |
+| iNAV vs official NAV | n/a (NAV used to set shares outstanding) |
+| Holdings as of | 2026-10-07 |
+| Shares outstanding | 669,383,118 (source: nav) |
+| Price coverage | 100.0% |
+
+**Data-quality checks**
+
+- ✅ All checks passed
+<!-- latest:end -->
+
+**Interactive dashboard:** [open `docs/index.html`](https://htmlpreview.github.io/?https://github.com/vanshwahi01/qqq-inav-monitor/blob/main/docs/index.html) (rendered straight from this repo, no hosting).
 
 ## Why
 
@@ -14,7 +35,7 @@ An ETF trades all day, but its NAV is only struck once, after the close. The iNA
 
 ```
 Invesco holdings feed ──┐
-                        ├─► value basket ─► iNAV ─► checks ─► SQLite ─► static dashboard
+                        ├─► value basket ─► iNAV ─► checks ─► SQLite ─► chart + README + HTML dashboard
 Yahoo Finance closes ───┘
 ```
 
@@ -23,16 +44,18 @@ Yahoo Finance closes ───┘
    - stocks and ADRs are priced at market;
    - cash and futures collateral are taken at face value;
    - futures notional and its "synthetic cash" offset cancel out, so both are excluded.
-3. **Prices.** Pulls raw (not dividend-adjusted) daily closes for every holding and for QQQ itself.
-4. **Shares outstanding.** Resolved in priority order, with the source recorded:
+3. **Prices.** Pulls raw (not dividend-adjusted) daily closes for every holding and for QQQ itself, plus the issuer's NAV as reported by Yahoo.
+4. **Shares outstanding.** There's no clean free source, so it's resolved in priority order, with the source recorded:
    1. a manual override in `config.yaml`;
-   2. Yahoo's figure, only if it is within 0.5% of the implied value;
-   3. implied from the holdings-date close.
+   2. total value of the basket ÷ official NAV, when the NAV is for the holdings date;
+   3. Yahoo's figure, only if it is within 0.5% of the implied value;
+   4. implied from the holdings-date close (assumes no premium that day).
 5. **iNAV.** `(Σ units × close + cash) / shares outstanding`, for every trading day from the holdings date onward.
 6. **Checks.** Flags anything that would make the number untrustworthy (see below).
-7. **Storage and report.**
+7. **Storage and outputs.**
    - Everything goes into `data/inav.db` (SQLite), with a CSV copy so changes show in git diffs.
-   - `docs/index.html` is rebuilt for GitHub Pages.
+   - `docs/chart.png` and the "Latest run" section above are regenerated.
+   - `docs/index.html` is a self-contained interactive dashboard.
 
 ## Data-quality checks
 
@@ -43,10 +66,19 @@ Yahoo Finance closes ───┘
 | `weights_sum` | Equity + cash weights not summing to ~100% |
 | `tna_reconciliation` | Our valuation disagreeing with the total assets implied by the issuer's own weights |
 | `stale_holdings` | Holdings file more than 5 days old |
+| `official_nav` | A NAV from Yahoo that's implausibly far from that day's close, so it's ignored |
 | `shares_out_source` | Yahoo's shares outstanding inconsistent with the holdings, so it is rejected |
 | `premium` / `nav_error` | Premium/discount or gap to official NAV beyond the threshold |
 
 Thresholds live in `config.yaml`.
+
+## What the real data showed
+
+Things that came up when running against live data, and how the code handles them:
+
+- **Yahoo's NAV isn't dated.** It's struck after the close and appears the next morning, so the evening run treats it as the previous trading day's NAV. Comparing it with today's iNAV instead produced a false 140 bp "error".
+- **Yahoo's shares outstanding is stale.** It reported 393M shares against roughly 670M implied by the holdings. The NAV-based figure takes priority, and when there isn't one the consistency check rejects Yahoo's number.
+- **The backfill drifts.** History is valued with today's basket, so going back two months the premium creeps up to ~40 bp. That's the basket changing (dividends paid out, the quarterly rebalance), not a real premium. It's shaded on the charts, and daily runs replace it going forward.
 
 ## Run it locally
 
@@ -54,19 +86,14 @@ Thresholds live in `config.yaml`.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pytest -q                          # unit tests, no network needed
-python -m inav backfill --days 60  # seed history, then build the dashboard
-python -m inav daily               # today's run + dashboard
+python -m inav backfill --days 60  # seed history, then build the outputs
+python -m inav daily               # today's run + outputs
 open docs/index.html
 ```
 
-## Deploy (free)
+## Automation (free)
 
-1. Push this repo to GitHub.
-2. Under **Settings → Pages**, choose "Deploy from a branch", branch `main`, folder `/docs`.
-3. Under **Settings → Actions → General**, give workflows "Read and write permissions".
-4. Under **Actions**, run "Daily iNAV update" once by hand. After that it runs every weekday at 22:30 UTC.
-
-Run `python -m inav backfill --days 60` locally once and commit `data/` and `docs/` so the chart has history from day one.
+`.github/workflows/daily.yml` runs on GitHub Actions (free for public repos) at 22:30 UTC each weekday. It runs the tests, calculates the iNAV, and commits `data/`, `docs/` and this README back to the repo. You can also start it by hand from the **Actions** tab ("Daily iNAV update" → "Run workflow").
 
 ## Project layout
 
@@ -78,7 +105,7 @@ inav/
   checks.py     data-quality checks
   pipeline.py   orchestration: fetch -> value -> check -> store
   db.py         SQLite schema and upserts
-  report.py     builds the static dashboard
+  report.py     chart, README section and HTML dashboard
 tests/          pytest suite with a real holdings snapshot as fixture
 config.yaml     ticker, paths, thresholds
 .github/workflows/daily.yml
@@ -91,3 +118,4 @@ config.yaml     ticker, paths, thresholds
 - **Dividends and fees.** Accrued dividends and the management fee are not modelled. Ex-dividend dates show up as small jumps in the premium.
 - **Single currency.** QQQ is all USD. Extending to a fund with foreign holdings means adding FX conversion per position.
 - **Futures.** Futures P&L since the holdings date is ignored. It is about 0.14% of assets, so under 0.2 bp per 1% market move.
+- **NAV timing.** The "previous trading day" assumption for Yahoo's NAV holds for the scheduled evening run. A run during market hours could mislabel it, and the 2% sanity check only catches large mistakes.

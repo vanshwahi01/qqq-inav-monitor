@@ -32,10 +32,29 @@ def test_daily_valuation(cfg, toy_holdings, raw_prices):
     assert any(f.check == "missing_price" for f in flags)
 
 
-def test_official_nav_compared_on_latest_date(cfg, toy_holdings, raw_prices):
-    results, _ = value_and_check(cfg, toy_holdings, raw_prices, info={"nav": 31.0}, method="daily")
-    assert results["official_nav"].iloc[:-1].isna().all()
-    assert results["nav_error_bp"].iloc[-1] == pytest.approx(0)
+def test_official_nav_compared_on_its_own_date(cfg, toy_holdings, raw_prices):
+    # Yahoo's NAV is the previous trading day's (Oct 2), which isn't the holdings date
+    results, flags = value_and_check(cfg, toy_holdings, raw_prices, info={"nav": 31.0}, method="daily")
+    assert results["shares_out_source"].iloc[0] == "implied"
+    assert list(results["official_nav"].isna()) == [True, False, True]
+    assert results["nav_error_bp"].iloc[1] == pytest.approx(0)
+    assert not any(f.check == "nav_error" for f in flags)
+
+
+def test_official_nav_on_holdings_date_sets_shares_out(cfg, toy_holdings, raw_prices):
+    # Two days of prices, so Yahoo's NAV is for Oct 1 = the holdings date
+    results, _ = value_and_check(cfg, toy_holdings, raw_prices.iloc[:2], info={"nav": 29.97}, method="daily")
+    assert results["shares_out_source"].iloc[0] == "nav"
+    assert results["shares_out"].iloc[0] == pytest.approx(3000 / 29.97)
+    assert results["inav"].iloc[0] == pytest.approx(29.97)  # iNAV = NAV on the anchor day
+    assert results["premium_bp"].iloc[0] == pytest.approx((30 / 29.97 - 1) * 1e4)  # a real premium, not 0
+    assert results["nav_error_bp"].isna().all()  # not an independent test, so not reported
+
+
+def test_implausible_official_nav_is_ignored(cfg, toy_holdings, raw_prices):
+    results, flags = value_and_check(cfg, toy_holdings, raw_prices, info={"nav": 40.0}, method="daily")
+    assert results["official_nav"].isna().all()
+    assert [f.check for f in flags if f.check == "official_nav"] == ["official_nav"]
 
 
 def test_shares_out_prefers_yahoo_when_consistent(cfg):
@@ -64,3 +83,18 @@ def test_store_and_build_report(cfg, toy_holdings, raw_prices):
     assert data["latest"]["valuation_date"] == "2026-10-05"
     assert {f["check_name"] for f in data["flags"]} >= {"missing_price"}
     assert len(pd.read_csv(f"{cfg['data_dir']}/inav_results.csv")) == 3
+
+
+def test_readme_block_is_rewritten(cfg, toy_holdings, raw_prices, tmp_path):
+    readme = tmp_path / "README.md"
+    readme.write_text("# Title\n\n<!-- latest:start -->\nPLACEHOLDER\n<!-- latest:end -->\n\n## After\n")
+    cfg["readme_path"] = str(readme)
+    results, flags = value_and_check(cfg, toy_holdings, raw_prices, info={}, method="daily")
+    _store(cfg, toy_holdings, raw_prices, results, flags)
+    build_report(cfg)
+
+    text = readme.read_text()
+    assert "PLACEHOLDER" not in text and text.startswith("# Title") and text.endswith("## After\n")
+    assert "| Computed iNAV | $31.00 |" in text
+    assert "`missing_price`" in text
+    assert (tmp_path / "docs" / "chart.png").stat().st_size > 0

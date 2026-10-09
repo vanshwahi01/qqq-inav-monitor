@@ -3,6 +3,7 @@ ticker: QQQ
 data_dir: data
 db_path: data/inav.db
 report_path: docs/index.html
+readme_path: README.md   # "Latest run" section is rewritten after each run
 
 # Optional: paste the issuer's published shares outstanding to override the
 # Yahoo / implied figure. Leave null to resolve automatically.
@@ -11,6 +12,7 @@ shares_outstanding: null
 thresholds:
   premium_warn_bp: 25            # flag premium/discount beyond this
   nav_error_warn_bp: 10          # flag iNAV vs official NAV gap beyond this
+  nav_max_gap_pct: 2             # ignore a Yahoo NAV this far from that day's close
   missing_weight_critical_pct: 0.5   # a missing price on a holding this big is critical
   large_move_pct: 15             # possible split / corporate action
   holdings_max_age_days: 5
