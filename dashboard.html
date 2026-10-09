@@ -145,7 +145,7 @@ function renderChart() {
     hovertemplate: "%{x|%b %d, %Y}<br>%{y:+.1f} bp<extra></extra>",
   }], layout, { displayModeBar: false, responsive: true });
 
-  // Rescale the y-axis when the time window changes (buttons, slider or drag)
+  // Rescale the y-axis when a range button is clicked
   el.on("plotly_relayout", ev => {
     if (ev["yaxis.range"] || ev["yaxis.range[0]"] !== undefined) return;
     const r = ev["xaxis.range"] || (ev["xaxis.range[0]"] !== undefined ? [ev["xaxis.range[0]"], ev["xaxis.range[1]"]] : null);
