@@ -25,7 +25,7 @@ _Updated automatically by the daily job. Last run: 2026-10-09 02:30:12 UTC_
 - ✅ All checks passed
 <!-- latest:end -->
 
-**Interactive dashboard:** [open `docs/index.html`](https://htmlpreview.github.io/?https://github.com/vanshwahi01/qqq-inav-monitor/blob/main/docs/index.html) (rendered straight from this repo, no hosting).
+**Interactive dashboard:** [`docs/index.html`](docs/index.html) is a single self-contained file with zoomable charts and the top-10 holdings. Download it and open it in a browser.
 
 ## Why
 
