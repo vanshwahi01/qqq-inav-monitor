@@ -92,7 +92,7 @@ def test_store_and_build_report(cfg, toy_holdings, raw_prices):
 
     html = build_report(cfg).read_text()
     data = json.loads(html.split("const DATA = ", 1)[1].split(";\n", 1)[0])  # must be strict JSON
-    assert "ETF iNAV Monitor" in html
+    assert "<title>ETF iNAV</title>" in html
     assert data["latest"]["valuation_date"] == "2026-10-05"
     assert {f["check_name"] for f in data["flags"]} >= {"missing_price"}
     assert len(pd.read_csv(f"{cfg['data_dir']}/inav_results.csv")) == 3

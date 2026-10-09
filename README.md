@@ -25,7 +25,7 @@ _Updated automatically by the daily job. Last run: 2026-10-09 02:30:12 UTC_
 - ✅ All checks passed
 <!-- latest:end -->
 
-**Interactive dashboard:** [`docs/index.html`](docs/index.html) is a single self-contained file with zoomable charts and the top-10 holdings. Download it and open it in a browser.
+**Interactive dashboard:** [`docs/index.html`](docs/index.html) is a single file with the premium/discount chart (1W to 1Y range buttons and a slider) and the top-10 holdings. Download it and open it in a browser.
 
 ## Why
 
