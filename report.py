@@ -1,7 +1,3 @@
-"""Build the outputs from the database: the HTML dashboard, a chart image, and the README section.
-
-The dashboard is one static file and the README shows the same numbers, so nothing needs hosting.
-"""
 from __future__ import annotations
 
 import json

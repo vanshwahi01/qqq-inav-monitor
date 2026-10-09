@@ -1,10 +1,3 @@
-"""QQQ iNAV: rebuild the ETF's value from its daily holdings and compare it with the market price.
-
-    python inav.py backfill --days 60   # seed history (past days valued with today's holdings)
-    python inav.py daily                # today's run, what the scheduled GitHub Action calls
-
-Results go into output/inav.db, then report.py rebuilds the dashboard, chart and README.
-"""
 from __future__ import annotations
 
 import argparse
@@ -41,8 +34,6 @@ CASH_TYPES = {"CURR", "CURRCOL"}  # face value (units are USD)
 
 log = logging.getLogger("inav")
 
-
-# ---------------------------------------------------------------- fetching
 
 def fetch_holdings(ticker: str) -> tuple[date, pd.DataFrame]:
     """Today's holdings file from Invesco: one row per stock, plus cash lines."""
@@ -132,8 +123,6 @@ def date_nav(nav: float | None, etf_closes: pd.Series) -> date | None:
     return gaps.index[0]
 
 
-# ---------------------------------------------------------------- the calculation
-
 def run(method: str, days: int | None = None) -> None:
     as_of, holdings = fetch_holdings(TICKER)
     equities = holdings[holdings["kind"] == "equity"].set_index("ticker")
@@ -212,8 +201,6 @@ def check(as_of, holdings, equities, closes, filled, anchor, latest, fund_value,
         issues.append(("premium", f"premium/discount of {premium:+.1f} bp is beyond ±{PREMIUM_ALERT_BP} bp"))
     return issues
 
-
-# ---------------------------------------------------------------- storage
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS holdings (
