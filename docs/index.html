@@ -222,8 +222,11 @@ function renderCharts() {
        yaxis: { ...base.yaxis, ticksuffix: " bp", range: [-1.4 * t, 1.4 * t], autorange: Math.max(...S.premium_bp.map(Math.abs)) > 1.3 * t } }, config);
 }
 
+// Wait for Plotly: previewers such as htmlpreview.github.io load it after this script runs
+const whenPlotly = fn => window.Plotly ? fn() : setTimeout(() => whenPlotly(fn), 50);
+
 renderStatic();
-renderCharts();
+whenPlotly(renderCharts);
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderCharts);
 let resizeTimer;
 window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderCharts, 200); });
