@@ -32,23 +32,36 @@ def test_daily_valuation(cfg, toy_holdings, raw_prices):
     assert any(f.check == "missing_price" for f in flags)
 
 
-def test_official_nav_compared_on_its_own_date(cfg, toy_holdings, raw_prices):
-    # Yahoo's NAV is the previous trading day's (Oct 2), which isn't the holdings date
-    results, flags = value_and_check(cfg, toy_holdings, raw_prices, info={"nav": 31.0}, method="daily")
-    assert results["shares_out_source"].iloc[0] == "implied"
-    assert list(results["official_nav"].isna()) == [True, False, True]
-    assert results["nav_error_bp"].iloc[1] == pytest.approx(0)
-    assert not any(f.check == "nav_error" for f in flags)
+def test_official_nav_is_dated_by_nearest_close(cfg, toy_holdings, raw_prices):
+    # Closes are 30.00, 31.03, 31.00. A NAV of 31.02 is 3 bp from Oct 2 but only
+    # 6 bp from Oct 5, so it is ambiguous and not used
+    _, flags = value_and_check(cfg, toy_holdings, raw_prices, info={"nav": 31.02}, method="daily")
+    assert any(f.check == "official_nav" for f in flags)
+
+    # 30.01 is 3 bp from Oct 1 and >300 bp from the others: matched to Oct 1
+    results, _ = value_and_check(cfg, toy_holdings, raw_prices, info={"nav": 30.01}, method="daily")
+    assert list(results["official_nav"].isna()) == [False, True, True]
 
 
 def test_official_nav_on_holdings_date_sets_shares_out(cfg, toy_holdings, raw_prices):
-    # Two days of prices, so Yahoo's NAV is for Oct 1 = the holdings date
-    results, _ = value_and_check(cfg, toy_holdings, raw_prices.iloc[:2], info={"nav": 29.97}, method="daily")
+    results, _ = value_and_check(cfg, toy_holdings, raw_prices, info={"nav": 29.97}, method="daily")
     assert results["shares_out_source"].iloc[0] == "nav"
     assert results["shares_out"].iloc[0] == pytest.approx(3000 / 29.97)
     assert results["inav"].iloc[0] == pytest.approx(29.97)  # iNAV = NAV on the anchor day
     assert results["premium_bp"].iloc[0] == pytest.approx((30 / 29.97 - 1) * 1e4)  # a real premium, not 0
     assert results["nav_error_bp"].isna().all()  # not an independent test, so not reported
+
+
+def test_official_nav_after_holdings_date_is_an_independent_check(cfg, toy_holdings):
+    raw = pd.DataFrame(
+        {"A": [10.0, 12.0], "B": [20.0, 20.0], "ETF": [30.0, 32.05]},
+        index=[date(2026, 10, 1), date(2026, 10, 2)],
+    )
+    # Oct 2: fund 3,200 / 100 shares = iNAV 32.00; NAV 32.02 is matched to Oct 2's close
+    results, flags = value_and_check(cfg, toy_holdings, raw, info={"nav": 32.02}, method="daily")
+    assert results["shares_out_source"].iloc[0] == "implied"
+    assert results["nav_error_bp"].iloc[1] == pytest.approx((32 / 32.02 - 1) * 1e4)
+    assert not any(f.check == "nav_error" for f in flags)  # ~6 bp, under the 10 bp threshold
 
 
 def test_implausible_official_nav_is_ignored(cfg, toy_holdings, raw_prices):
@@ -98,3 +111,18 @@ def test_readme_block_is_rewritten(cfg, toy_holdings, raw_prices, tmp_path):
     assert "| Computed iNAV | $31.00 |" in text
     assert "`missing_price`" in text
     assert (tmp_path / "docs" / "chart.png").stat().st_size > 0
+
+
+def test_report_shows_only_the_latest_runs_flags(cfg, toy_holdings, raw_prices):
+    results, flags = value_and_check(cfg, toy_holdings, raw_prices, info={}, method="daily")
+    _store(cfg, toy_holdings, raw_prices, results, flags)  # has a missing_price flag
+
+    import time
+    time.sleep(1.1)  # run_ts has one-second resolution
+    clean = raw_prices.ffill()
+    results, flags = value_and_check(cfg, toy_holdings, clean, info={}, method="daily")
+    _store(cfg, toy_holdings, clean, results, flags)
+
+    html = build_report(cfg).read_text()
+    data = json.loads(html.split("const DATA = ", 1)[1].split(";\n", 1)[0])
+    assert not any(f["check_name"] == "missing_price" for f in data["flags"])

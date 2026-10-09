@@ -49,7 +49,7 @@ def cfg(tmp_path) -> dict:
         "thresholds": {
             "premium_warn_bp": 25,
             "nav_error_warn_bp": 10,
-            "nav_max_gap_pct": 2,
+            "nav_match_bp": 25,
             "missing_weight_critical_pct": 0.5,
             "large_move_pct": 15,
             "holdings_max_age_days": 5,

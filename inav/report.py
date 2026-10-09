@@ -75,7 +75,7 @@ def build_report(cfg: dict) -> Path:
         flags = db.read_sql(
             conn,
             "SELECT check_name, severity, detail FROM exceptions "
-            "WHERE run_ts = (SELECT MAX(run_ts) FROM exceptions) "
+            "WHERE run_ts = (SELECT MAX(run_ts) FROM inav_results) "
             "ORDER BY CASE severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END",
         )
         payload = {

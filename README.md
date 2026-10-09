@@ -5,25 +5,24 @@ Rebuilds the **indicative net asset value (iNAV)** of the Invesco QQQ ETF from i
 ## Latest run
 
 <!-- latest:start -->
-_Updated automatically by the daily job. Last run: 2026-10-09 02:28:00 UTC_
+_Updated automatically by the daily job. Last run: 2026-10-09 02:29:26 UTC_
 
 ![QQQ iNAV vs market close](docs/chart.png)
 
 | Valuation date 2026-10-08 | |
 |---|---|
-| Computed iNAV | $748.94 |
+| Computed iNAV | $747.42 |
 | QQQ close | $747.58 |
-| Premium / discount | -18.2 bp |
-| Official NAV (2026-10-07) | $759.50 |
+| Premium / discount | +2.1 bp |
+| Official NAV (2026-10-07) | $757.96 |
 | iNAV vs official NAV | n/a (NAV used to set shares outstanding) |
 | Holdings as of | 2026-10-07 |
-| Shares outstanding | 668,025,843 (source: nav) |
+| Shares outstanding | 669,383,118 (source: nav) |
 | Price coverage | 100.0% |
 
 **Data-quality checks**
 
-- 🔴 `missing_price`: CSCO (1.89% weight) has no close; last price carried forward
-- 🟡 `tna_reconciliation`: Valued TNA differs from weight-implied TNA by -190.9 bp
+- ✅ All checks passed
 <!-- latest:end -->
 
 **Interactive dashboard:** [open `docs/index.html`](https://htmlpreview.github.io/?https://github.com/vanshwahi01/qqq-inav-monitor/blob/main/docs/index.html) (rendered straight from this repo, no hosting).
@@ -67,7 +66,7 @@ Yahoo Finance closes ───┘
 | `weights_sum` | Equity + cash weights not summing to ~100% |
 | `tna_reconciliation` | Our valuation disagreeing with the total assets implied by the issuer's own weights |
 | `stale_holdings` | Holdings file more than 5 days old |
-| `official_nav` | A NAV from Yahoo that's implausibly far from that day's close, so it's ignored |
+| `official_nav` | Yahoo's NAV can't be matched to a single recent close, so it's not used |
 | `shares_out_source` | Yahoo's shares outstanding inconsistent with the holdings, so it is rejected |
 | `premium` / `nav_error` | Premium/discount or gap to official NAV beyond the threshold |
 
@@ -77,7 +76,8 @@ Thresholds live in `config.yaml`.
 
 Things that came up when running against live data, and how the code handles them:
 
-- **Yahoo's NAV isn't dated.** It's struck after the close and appears the next morning, so the evening run treats it as the previous trading day's NAV. Comparing it with today's iNAV instead produced a false 140 bp "error".
+- **Yahoo's NAV isn't dated, and it isn't consistent.** On the same evening, my laptop got Oct 7's NAV and the GitHub runner got Oct 6's. Comparing it with today's iNAV produced a false 140 bp "error". The code now dates the NAV by matching it to the recent close it's nearest to. ETFs trade within a few bp of NAV while daily moves are ~100 bp, so the right day stands out, and the NAV is skipped when it doesn't.
+- **Yahoo drops tickers.** A GitHub Actions run got no prices for CSCO (1.9% of the fund). The checks flagged it as critical, and missing tickers are now retried on their own.
 - **Yahoo's shares outstanding is stale.** It reported 393M shares against roughly 670M implied by the holdings. The NAV-based figure takes priority, and when there isn't one the consistency check rejects Yahoo's number.
 - **The backfill drifts.** History is valued with today's basket, so going back two months the premium creeps up to ~40 bp. That's the basket changing (dividends paid out, the quarterly rebalance), not a real premium. It's shaded on the charts, and daily runs replace it going forward.
 
@@ -119,4 +119,4 @@ config.yaml     ticker, paths, thresholds
 - **Dividends and fees.** Accrued dividends and the management fee are not modelled. Ex-dividend dates show up as small jumps in the premium.
 - **Single currency.** QQQ is all USD. Extending to a fund with foreign holdings means adding FX conversion per position.
 - **Futures.** Futures P&L since the holdings date is ignored. It is about 0.14% of assets, so under 0.2 bp per 1% market move.
-- **NAV timing.** The "previous trading day" assumption for Yahoo's NAV holds for the scheduled evening run. A run during market hours could mislabel it, and the 2% sanity check only catches large mistakes.
+- **NAV dating.** Matching Yahoo's NAV to the nearest close fails on flat days, when two closes are about equally near. The NAV is then skipped, and shares outstanding falls back to the close-implied figure. A dated NAV from the issuer would remove the guesswork.

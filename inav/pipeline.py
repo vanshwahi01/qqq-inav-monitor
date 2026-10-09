@@ -22,25 +22,29 @@ def load_config(path: str | Path = "config.yaml") -> dict:
         return yaml.safe_load(f)
 
 
-def official_nav(info: dict, filled: pd.DataFrame, etf: str, max_gap_pct: float) -> tuple[date | None, float | None, list[checks.Flag]]:
+def official_nav(info: dict, filled: pd.DataFrame, etf: str, match_bp: float) -> tuple[date | None, float | None, list[checks.Flag]]:
     """The issuer's NAV from Yahoo, and the trading day it belongs to.
 
-    Yahoo doesn't date its NAV. It is struck after the close and shows up the
-    next morning, so by the evening run it is the previous trading day's NAV.
-    A NAV far from that day's close is treated as bad data and ignored.
+    Yahoo doesn't date its NAV, and different Yahoo servers have returned
+    NAVs one or two days old. So the NAV is matched to the recent close it's
+    nearest to: ETFs trade within a few bp of NAV while daily moves are
+    usually ~100 bp, so the right day stands out. If no close is within
+    `match_bp`, or the runner-up is nearly as close, the NAV is not used.
     """
     nav = info.get("nav")
-    dates = list(filled.index)
-    if not nav or len(dates) < 2:
+    if not nav:
         return None, None, []
-    nav_date = dates[-2]
-    gap_pct = (nav / filled.loc[nav_date, etf] - 1) * 100
-    if abs(gap_pct) > max_gap_pct:
+    recent = filled[etf].dropna().iloc[-5:]
+    gaps = ((nav / recent - 1) * 1e4).abs().sort_values()
+    best_date, best = gaps.index[0], gaps.iloc[0]
+    runner_up = gaps.iloc[1] if len(gaps) > 1 else float("inf")
+    if best > match_bp or runner_up < 3 * best:
         return None, None, [checks.Flag(
-            "official_nav", "warning",
-            f"Yahoo NAV ${nav:,.2f} is {gap_pct:+.1f}% from the {nav_date} close; ignored",
+            "official_nav", "info",
+            f"Yahoo NAV ${nav:,.2f} can't be matched to a single recent close "
+            f"(nearest {best:.1f} bp on {best_date}); not used",
         )]
-    return nav_date, float(nav), []
+    return best_date, float(nav), []
 
 
 def resolve_shares_outstanding(
@@ -92,7 +96,7 @@ def value_and_check(
     # Anchor: value the fund on the holdings date to pin down shares outstanding.
     # If the official NAV for that day is known, TNA / NAV gives shares exactly;
     # otherwise assume the ETF closed at NAV that day.
-    nav_date, nav, flags = official_nav(info, filled, etf, th["nav_max_gap_pct"])
+    nav_date, nav, flags = official_nav(info, filled, etf, th["nav_match_bp"])
     fund_mv, _ = fund_value(holdings, anchor)
     implied = implied_shares_outstanding(fund_mv, anchor[etf])
     from_nav = implied_shares_outstanding(fund_mv, nav) if nav_date == anchor_date else None
