@@ -1,9 +1,0 @@
-[project]
-name = "qqq-inav"
-version = "0.1.0"
-description = "ETF indicative NAV calculator and premium/discount monitor"
-requires-python = ">=3.10"
-
-[tool.pytest.ini_options]
-pythonpath = ["."]
-testpaths = ["tests"]

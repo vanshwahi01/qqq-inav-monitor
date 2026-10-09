@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QQQ iNAV</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f6f4;
+    --card: #ffffff;
+    --border: #e3e2dc;
+    --text: #111111;
+    --text-2: #55544f;
+    --muted: #7a7973;
+    --grid: #ecebe6;
+    --axis: #c9c8c0;
+    --bar: #2a78d6;
+    --backfill: rgba(137, 135, 129, 0.10);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  }
+  main { max-width: 1000px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
+  .meta { font-size: 13px; color: var(--muted); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 20px 0; }
+  .kpi, .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+  .kpi { padding: 14px 16px; }
+  .kpi .label { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.04em; }
+  .kpi .value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .kpi .sub { font-size: 12px; color: var(--muted); }
+  .card { padding: 18px 18px 8px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; margin: 0 0 2px; }
+  .card .desc { font-size: 13px; color: var(--text-2); margin: 0 0 8px; }
+  #chart { width: 100%; height: 380px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; margin-bottom: 10px; }
+  th { text-align: left; font-weight: 600; color: var(--text-2); border-bottom: 1px solid var(--axis); padding: 6px 8px; }
+  td { border-bottom: 1px solid var(--grid); padding: 6px 8px; }
+  td.num, th.num { text-align: right; }
+  footer { margin-top: 16px; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>QQQ iNAV</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="card">
+    <h2>Premium / discount (bp)</h2>
+    <p class="desc">Market close vs. value of the holdings. Above zero means QQQ closed above its holdings. Shaded = backfill estimate.</p>
+    <div id="chart"></div>
+  </section>
+
+  <section class="card">
+    <h2>Top 10 holdings</h2>
+    <p class="desc">Move since the holdings date and contribution to the fund (weight × return).</p>
+    <div class="table-wrap" id="holdings"></div>
+  </section>
+
+  <footer>Data: Invesco holdings, Yahoo Finance closes. Updated each weekday after the US close.</footer>
+</main>
+
+<script>
+const DATA = {"ticker": "QQQ", "alert_bp": 25, "last_run": "2026-10-09 02:38:20 UTC", "latest": {"valuation_date": "2026-10-08", "holdings_date": "2026-10-07", "inav": 747.4225665815197, "market_close": 747.5800170898438, "premium_bp": 2.1065795356456363}, "nav": {"date": "2026-10-07", "value": 757.96}, "series": {"date": ["2026-07-16", "2026-07-17", "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10", "2026-08-11", "2026-08-12", "2026-08-13", "2026-08-14", "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11", "2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18", "2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25", "2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-02", "2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08"], "premium_bp": [14.7, 18.39, 27.84, 17.28, 28.55, 22.57, 30.07, 32.6, 32.29, 37.28, 31.87, 41.67, 34.15, 32.54, 41.69, 37.09, 18.91, 17.13, 21.05, 8.05, 15.86, 15.97, 8.84, 10.21, 16.99, 21.31, 21.22, 20.66, 16.43, 17.93, 13.01, 17.67, 11.07, 12.85, 15.14, 8.91, 7.31, 2.55, 8.0, 8.71, 3.44, 9.02, 12.17, 3.58, 1.76, 0.33, -0.84, -1.83, -0.44, -4.64, -1.08, -0.09, -1.73, 0.56, 0.59, 2.12, 3.49, 1.74, -3.03, 2.11], "backfill": [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false]}, "holdings": [{"ticker": "NVDA", "name": "NVIDIA Corp", "weight_pct": 8.46, "close": 230.48, "move_pct": -2.94, "contrib_bp": -24.9}, {"ticker": "AAPL", "name": "Apple Inc", "weight_pct": 7.26, "close": 340.42, "move_pct": 1.11, "contrib_bp": 8.09}, {"ticker": "MSFT", "name": "Microsoft Corp", "weight_pct": 5.81, "close": 522.61, "move_pct": -1.35, "contrib_bp": -7.85}, {"ticker": "MU", "name": "Micron Technology Inc", "weight_pct": 5.01, "close": 1035.84, "move_pct": -4.79, "contrib_bp": -24.04}, {"ticker": "AMD", "name": "Advanced Micro Devices Inc", "weight_pct": 4.3, "close": 620.68, "move_pct": -3.9, "contrib_bp": -16.77}, {"ticker": "AMZN", "name": "Amazon.com Inc", "weight_pct": 4.14, "close": 254.06, "move_pct": -2.25, "contrib_bp": -9.34}, {"ticker": "META", "name": "Meta Platforms Inc", "weight_pct": 3.17, "close": 720.89, "move_pct": -0.06, "contrib_bp": -0.18}, {"ticker": "GOOGL", "name": "Alphabet Inc Class A", "weight_pct": 3.04, "close": 348.29, "move_pct": -0.63, "contrib_bp": -1.92}, {"ticker": "SPCX", "name": "Space Exploration Technologies Corp", "weight_pct": 2.93, "close": 160.57, "move_pct": -4.19, "contrib_bp": -12.31}, {"ticker": "TSLA", "name": "Tesla Inc", "weight_pct": 2.93, "close": 375.0, "move_pct": -0.74, "contrib_bp": -2.18}]};
+
+const fmt = (v, d = 2) => v == null || Number.isNaN(v) ? "—" : Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const signed = (v, d = 1) => v == null || Number.isNaN(v) ? "—" : (v > 0 ? "+" : "") + fmt(v, d);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function renderStatic() {
+  const L = DATA.latest;
+  document.getElementById("meta").textContent =
+    `As of ${L.valuation_date} · holdings from ${L.holdings_date} · updated ${DATA.last_run}`;
+
+  const kpis = [
+    ["iNAV", `$${fmt(L.inav)}`, "per share"],
+    [`${DATA.ticker} close`, `$${fmt(L.market_close)}`, "market price"],
+    ["Premium / discount", `${signed(L.premium_bp)} bp`, `alert at ±${DATA.alert_bp} bp`],
+    ["Official NAV", DATA.nav ? `$${fmt(DATA.nav.value)}` : "—", DATA.nav ? DATA.nav.date : "not available"],
+  ];
+  document.getElementById("kpis").innerHTML = kpis.map(([l, v, s]) =>
+    `<div class="kpi"><div class="label">${esc(l)}</div><div class="value">${esc(v)}</div><div class="sub">${esc(s)}</div></div>`).join("");
+
+  document.getElementById("holdings").innerHTML =
+    `<table><thead><tr><th>Ticker</th><th class="num">Weight</th><th class="num">Close</th><th class="num">Move</th><th class="num">Contrib.</th></tr></thead><tbody>${
+      DATA.holdings.map(h => `<tr><td title="${esc(h.name)}">${esc(h.ticker)}</td><td class="num">${fmt(h.weight_pct)}%</td><td class="num">$${fmt(h.close)}</td><td class="num">${signed(h.move_pct, 2)}%</td><td class="num">${signed(h.contrib_bp, 1)} bp</td></tr>`).join("")
+    }</tbody></table>`;
+}
+
+function renderChart() {
+  const S = DATA.series;
+  const x = S.date, y = S.premium_bp;
+  const t = DATA.alert_bp;
+  const backfill = x.filter((_, i) => S.backfill[i]);
+
+  // Fit the y-axis to the bars in view, never tighter than the alert band
+  const yRange = (from, to) => {
+    const vis = y.filter((_, i) => (!from || x[i] >= from) && (!to || x[i] <= to)).map(Math.abs);
+    const m = Math.max(1.3 * t, ...vis) * 1.1;
+    return [-m, m];
+  };
+  const hline = (v, dash) => ({ type: "line", xref: "paper", x0: 0, x1: 1, y0: v, y1: v,
+    line: { color: dash ? "#7a7973" : "#c9c8c0", width: 1, dash: dash ? "dash" : "solid" } });
+
+  const layout = {
+    paper_bgcolor: "#ffffff", plot_bgcolor: "#ffffff",
+    font: { color: "#55544f", size: 12, family: getComputedStyle(document.body).fontFamily },
+    margin: { l: 56, r: 12, t: 8, b: 8 },
+    showlegend: false, bargap: 0.25, hovermode: "closest",
+    xaxis: {
+      type: "date", linecolor: "#c9c8c0", tickcolor: "#c9c8c0", gridcolor: "rgba(0,0,0,0)",
+      rangebreaks: [{ bounds: ["sat", "mon"] }],
+      rangeselector: {
+        x: 0, y: 1.02, yanchor: "bottom", bgcolor: "#f6f6f4", activecolor: "#dbe8f8", font: { size: 12 },
+        buttons: [
+          { step: "day", stepmode: "backward", count: 7, label: "1W" },
+          { step: "month", stepmode: "backward", count: 1, label: "1M" },
+          { step: "month", stepmode: "backward", count: 3, label: "3M" },
+          { step: "month", stepmode: "backward", count: 6, label: "6M" },
+          { step: "year", stepmode: "todate", count: 1, label: "YTD" },
+          { step: "year", stepmode: "backward", count: 1, label: "1Y" },
+          { step: "all", label: "All" },
+        ],
+      },
+      rangeslider: { visible: true, thickness: 0.08, bgcolor: "#f6f6f4", bordercolor: "#e3e2dc" },
+    },
+    yaxis: { gridcolor: "#ecebe6", zeroline: false, ticksuffix: " bp", range: yRange(), fixedrange: true },
+    hoverlabel: { bgcolor: "#ffffff", bordercolor: "#e3e2dc", font: { color: "#111111" } },
+    shapes: [
+      ...(backfill.length ? [{ type: "rect", xref: "x", yref: "paper", layer: "below", line: { width: 0 },
+        x0: backfill[0], x1: backfill[backfill.length - 1], y0: 0, y1: 1, fillcolor: "rgba(137,135,129,0.10)" }] : []),
+      hline(t, true), hline(-t, true), hline(0, false),
+    ],
+  };
+
+  const el = document.getElementById("chart");
+  Plotly.newPlot(el, [{
+    x, y, type: "bar", marker: { color: y.map(v => v >= 0 ? "#2a78d6" : "#eb6834") },
+    hovertemplate: "%{x|%b %d, %Y}<br>%{y:+.1f} bp<extra></extra>",
+  }], layout, { displayModeBar: false, responsive: true });
+
+  // Rescale the y-axis when the time window changes (buttons, slider or drag)
+  el.on("plotly_relayout", ev => {
+    if (ev["yaxis.range"] || ev["yaxis.range[0]"] !== undefined) return;
+    const r = ev["xaxis.range"] || (ev["xaxis.range[0]"] !== undefined ? [ev["xaxis.range[0]"], ev["xaxis.range[1]"]] : null);
+    const range = r ? yRange(String(r[0]).slice(0, 10), String(r[1]).slice(0, 10)) : yRange();
+    Plotly.relayout(el, { "yaxis.range": range });
+  });
+}
+
+renderStatic();
+</script>
+<!-- Loaded after the page content so the numbers show before the chart library arrives -->
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.2/plotly-basic.min.js" onload="renderChart()"></script>
+</body>
+</html>
