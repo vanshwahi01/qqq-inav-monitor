@@ -1,0 +1,17 @@
+{
+  "cusip": "QQQ",
+  "effectiveDate": "2026-10-06",
+  "effectiveBusinessDate": "2026-10-06",
+  "totalNumberOfHoldings": 106,
+  "holdings": [
+    {"ticker": "NVDA", "issuerName": "NVIDIA Corp", "units": 180963548, "percentageOfTotalNetAssets": 8.505184, "securityTypeName": "Common Stock", "cusip": "67066G104", "currency": "USD", "securityTypeCode": "COM"},
+    {"ticker": "AAPL", "issuerName": "Apple Inc", "units": 109585650, "percentageOfTotalNetAssets": 7.182533, "securityTypeName": "Common Stock", "cusip": "037833100", "currency": "USD", "securityTypeCode": "COM"},
+    {"ticker": "MSFT", "issuerName": "Microsoft Corp", "units": 55757378, "percentageOfTotalNetAssets": 5.797798, "securityTypeName": "Common Stock", "cusip": "594918104", "currency": "USD", "securityTypeCode": "COM"},
+    {"ticker": "ASML", "issuerName": "ASML Holding NV", "units": 1948923, "percentageOfTotalNetAssets": 0.702225, "securityTypeName": "American Depository Receipt - NY", "cusip": "N07059210", "currency": "USD", "securityTypeCode": "DRNY"},
+    {"ticker": "USD", "issuerName": "CASH &amp; EQUIVALENTS", "units": 1233394765.55, "percentageOfTotalNetAssets": 0.242304, "securityTypeName": "Currency", "cusip": "CASHUSD00", "currency": "USD", "securityTypeCode": "CURR"},
+    {"ticker": "NQZ6", "issuerName": "CME E-Mini NASDAQ 100 Index Future", "units": 1125, "percentageOfTotalNetAssets": 0.139162, "securityTypeName": "Index Future", "cusip": "NQZ6", "currency": "USD", "securityTypeCode": "IFUT"},
+    {"ticker": null, "issuerName": "CASH COLLATERAL", "units": 17148445.48, "percentageOfTotalNetAssets": 0.003369, "securityTypeName": "Currency Collateral", "cusip": "FUTPLGCSH", "currency": "USD", "securityTypeCode": "CURRCOL"},
+    {"ticker": null, "issuerName": "CONTRA FUTURE FUTURE DEC 18 26", "units": -1125, "percentageOfTotalNetAssets": -0.139162, "securityTypeName": "Synthetic Cash", "cusip": "NQZ6", "currency": "USD", "securityTypeCode": "SYN"},
+    {"ticker": "USDPDV", "issuerName": "USD Pending Dividends", "units": 0, "percentageOfTotalNetAssets": null, "securityTypeName": "Currency", "cusip": null, "currency": "USD", "securityTypeCode": "CURR"}
+  ]
+}
