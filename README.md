@@ -4,11 +4,11 @@ Rebuilds the value of the Invesco QQQ ETF from its daily holdings and compares i
 It runs for free on GitHub Actions every weekday after the US close and updates this page.
 
 <!-- latest:start -->
-**As of October 9, 2026**
+**As of October 12, 2026**
 
 | iNAV | QQQ close | Premium / discount | Official NAV |
 |---|---|---|---|
-| $751.06 | $751.27 | +2.8 bp | $757.96 (2026-10-07) |
+| $745.92 | $746.04 | +1.6 bp | $751.23 (2026-10-09) |
 
 ![Premium / discount chart](output/chart.png)
 
@@ -16,16 +16,16 @@ It runs for free on GitHub Actions every weekday after the US close and updates 
 
 | Ticker | Weight | Close | Move | Contrib. |
 |---|---|---|---|---|
-| NVDA | 8.33% | $229.28 | -0.52% | -4.3 bp |
-| AAPL | 7.45% | $336.64 | -1.11% | -8.3 bp |
-| MSFT | 5.82% | $535.07 | +2.38% | +13.9 bp |
-| MU | 4.85% | $1,029.00 | -0.66% | -3.2 bp |
-| AMD | 4.20% | $608.10 | -2.03% | -8.5 bp |
-| AMZN | 4.11% | $262.43 | +3.29% | +13.6 bp |
-| META | 3.22% | $718.67 | -0.31% | -1.0 bp |
-| GOOGL | 3.07% | $351.66 | +0.97% | +3.0 bp |
-| TSLA | 2.96% | $382.70 | +2.05% | +6.1 bp |
-| GOOG | 2.86% | $347.86 | +0.87% | +2.5 bp |
+| NVDA | 8.25% | $226.32 | -1.29% | -10.7 bp |
+| AAPL | 7.34% | $340.97 | +1.29% | +9.4 bp |
+| MSFT | 5.93% | $541.15 | +1.14% | +6.7 bp |
+| MU | 4.79% | $989.04 | -3.88% | -18.6 bp |
+| AMZN | 4.23% | $259.53 | -1.11% | -4.7 bp |
+| AMD | 4.09% | $594.24 | -2.28% | -9.3 bp |
+| META | 3.19% | $742.96 | +3.38% | +10.8 bp |
+| GOOGL | 3.08% | $352.72 | +0.30% | +0.9 bp |
+| TSLA | 3.00% | $378.03 | -1.22% | -3.7 bp |
+| SPCX | 2.87% | $163.42 | +0.52% | +1.5 bp |
 
 </details>
 <!-- latest:end -->
