@@ -8,7 +8,7 @@ It runs for free on GitHub Actions every weekday after the US close and updates 
 
 | iNAV | QQQ close | Premium / discount | Official NAV |
 |---|---|---|---|
-| $634.05 | $633.93 | -1.8 bp | $637.95 (2026-11-24) |
+| $633.91 | $633.93 | +0.3 bp | $633.91 (2026-11-25) |
 
 ![Premium / discount chart](output/chart.png)
 
@@ -16,16 +16,16 @@ It runs for free on GitHub Actions every weekday after the US close and updates 
 
 | Ticker | Weight | Close | Move | Contrib. |
 |---|---|---|---|---|
-| AAPL | 9.09% | $355.58 | +0.43% | +3.9 bp |
-| NVDA | 6.59% | $149.30 | -3.91% | -25.8 bp |
-| MSFT | 6.49% | $489.93 | -1.25% | -8.1 bp |
-| AMZN | 4.79% | $244.43 | -3.12% | -14.9 bp |
-| TSLA | 3.55% | $380.14 | -1.18% | -4.2 bp |
-| MU | 3.45% | $601.25 | -4.53% | -15.7 bp |
-| AMD | 3.28% | $406.03 | -1.75% | -5.7 bp |
-| WMT | 3.12% | $131.94 | -0.28% | -0.9 bp |
-| META | 3.08% | $609.89 | +3.40% | +10.5 bp |
-| GOOGL | 2.88% | $273.10 | -2.13% | -6.1 bp |
+| AAPL | 9.18% | $355.58 | +0.00% | +0.0 bp |
+| MSFT | 6.45% | $489.93 | +0.00% | +0.0 bp |
+| NVDA | 6.37% | $149.30 | +0.00% | +0.0 bp |
+| AMZN | 4.67% | $244.43 | +0.00% | +0.0 bp |
+| TSLA | 3.53% | $380.14 | +0.00% | +0.0 bp |
+| MU | 3.32% | $601.25 | +0.00% | +0.0 bp |
+| AMD | 3.24% | $406.03 | +0.00% | +0.0 bp |
+| META | 3.21% | $609.89 | +0.00% | +0.0 bp |
+| WMT | 3.14% | $131.94 | +0.00% | +0.0 bp |
+| GOOGL | 2.84% | $273.10 | +0.00% | +0.0 bp |
 
 </details>
 <!-- latest:end -->
